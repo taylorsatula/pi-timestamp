@@ -1,0 +1,35 @@
+{
+  "name": "@taylorsatula/pi-timestamp",
+  "version": "0.1.0",
+  "description": "Timestamp injection extension for Pi — appends the current wall-clock time as a synthetic tool-call pair to every provider request at turn boundaries, so the model always knows what time it is.",
+  "keywords": [
+    "pi-package"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taylorsatula/pi-timestamp"
+  },
+  "files": [
+    "extensions",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/timestamp.ts"
+    ]
+  }
+}
