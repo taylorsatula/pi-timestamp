@@ -9,7 +9,7 @@ to the tail of the last message:
 
 ```
 They're injected poorly if they're that annoying.
-[11:34pm - 9/1/26]
+[2026-09-15T16:22:22-03:00 Tue]
 ```
 
 Injection happens only at **turn boundaries**, never mid-tool-loop:
@@ -19,6 +19,13 @@ Injection happens only at **turn boundaries**, never mid-tool-loop:
   steps) → append to its content.
 - Last message is an assistant message carrying `tool_calls`, or a tool result (mid-turn
   churn) → skip.
+
+## Bundled skill
+
+This package ships one skill, `time-tooling`, which helps the model pick the right clock for
+time questions, do time arithmetic and timezone conversion, benchmark with `hyperfine`, and
+read dateutils and GNU `time`. It is reference guidance only; it relies on the companion CLI
+tools below, none of which the extension itself needs.
 
 ## Why plain-text tail append (design notes)
 
@@ -52,8 +59,20 @@ Or add to `~/.pi/agent/settings.json` under `packages`:
 
 ## Notes
 
-- Timestamps use the machine's **local time**, formatted `h:mmam/pm - M/D/YY`
-  (e.g. `[3:07pm - 8/26/25]`).
+- Timestamps use the machine's **local time**, formatted ISO-8601 with an explicit
+  numeric UTC offset and a 3-letter weekday, e.g. `[2026-09-15T16:22:22-03:00 Tue]`.
+  The offset is always numeric (`±HH:MM`, never `Z`) and handles `:30`/`:45` offsets
+  (e.g. `+05:45`).
+- **Why this format.** `[YYYY-MM-DDTHH:MM:SS±HH:MM Www]` is parseable by `date -d`, has no
+  M/D-vs-D/M ambiguity, carries an explicit numeric offset so the model can reason across
+  timezones, includes the weekday for relative-time reasoning, and includes seconds for
+  mid-turn stopwatch reads. Weekday names are hardcoded English (not `toLocaleDateString`)
+  so the tag is locale-independent.
+- **Changing the format.** The idempotence guard (`TS_STRIP` in `extensions/timestamp.ts`)
+  matches the tag exactly, so it must be updated in the same commit as any format change.
+  Change one without the other and re-fires will stack tags on every request.
+- **Tag format is a breaking change** for anything parsing it: earlier versions emitted
+  `[h:mmam/pm - M/D/YY]`, this one emits ISO-8601.
 - No tools, commands, shortcuts, or settings are registered — the extension is invisible
   except for the appended tag.
 - The tag is added to the outgoing payload only; it is not persisted to the session
@@ -61,6 +80,22 @@ Or add to `~/.pi/agent/settings.json` under `packages`:
 - Version 0.2.0 changed the mechanism (plain-text tail append replacing the synthetic
   tool-call pair). Sessions started before the upgrade may still show one old-style pair
   until restart.
+
+## Companion CLI tools
+
+The bundled `time-tooling` skill assumes the following tools are installed. The extension
+itself needs **none** of them — they are only used when the model follows the skill's guidance
+for time arithmetic, benchmarks, or monitoring.
+
+| Tool | What it's for | pacman | apt | brew |
+| --- | --- | --- | --- | --- |
+| GNU `date` (coreutils) | `-d` date parsing | `pacman -S coreutils` | `apt install coreutils` | `brew install coreutils` (as `gdate`) |
+| `dateutils` | `dateadd`, `datediff`, `dateseq`, `dateround`, `datezone` | `pacman -S dateutils` | `apt install dateutils` | `brew install dateutils` |
+| `hyperfine` | benchmark "is A faster than B?" | `pacman -S hyperfine` | `apt install hyperfine` | `brew install hyperfine` |
+| GNU `time` | `/usr/bin/time -v` resource stats | `pacman -S time` | `apt install time` | `brew install gnu-time` (as `gtime`) |
+
+Homebrew installs the GNU variants under `g`-prefixed names (`gdate`, `gtime`) to avoid
+shadowing the BSD/macOS built-ins.
 
 ## Development
 
