@@ -13,7 +13,8 @@
   },
   "files": [
     "extensions",
-    "README.md"
+    "README.md",
+    ".agents/skills"
   ],
   "peerDependencies": {
     "@earendil-works/pi-agent-core": "*",
@@ -30,6 +31,9 @@
   "pi": {
     "extensions": [
       "./extensions/timestamp.ts"
+    ],
+    "skills": [
+      ".agents/skills"
     ]
   }
 }
