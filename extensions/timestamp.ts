@@ -15,19 +15,33 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 //   - Idempotent per request: a previously appended tag is stripped before the
 //     fresh one is written.
 
-const TS_STRIP = /\n\[\d{1,2}:\d{2}(am|pm) - \d{1,2}\/\d{1,2}\/\d{2}\]\s*$/;
+const TS_STRIP = /\n\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} [A-Z][a-z]{2}\]\s*$/;
+
+// Hardcoded English weekday names. Do NOT switch to toLocaleDateString — a
+// non-English locale renders e.g. 'ter'/'qua', which the strip regex would not
+// match, and tags would then stack on every request.
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function formatTimestamp(): string {
   const now = new Date();
-  let hours = now.getHours();
-  const minutes = now.getMinutes();
-  const ampm = hours >= 12 ? "pm" : "am";
-  hours = hours % 12;
-  if (hours === 0) hours = 12;
-  const month = now.getMonth() + 1;
-  const day = now.getDate();
-  const year = String(now.getFullYear()).slice(-2);
-  return `[${hours}:${String(minutes).padStart(2, "0")}${ampm} - ${month}/${day}/${year}]`;
+  const y = now.getFullYear();
+  const mo = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const h = String(now.getHours()).padStart(2, "0");
+  const mi = String(now.getMinutes()).padStart(2, "0");
+  const s = String(now.getSeconds()).padStart(2, "0");
+
+  // getTimezoneOffset() returns minutes *behind* UTC (positive west of UTC),
+  // so negate it to obtain the ISO-8601 offset used in the tag.
+  const offsetMinutes = -now.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMinutes);
+  const oh = String(Math.floor(abs / 60)).padStart(2, "0");
+  const om = String(abs % 60).padStart(2, "0");
+
+  const wd = WEEKDAYS[now.getDay()];
+
+  return `[${y}-${mo}-${d}T${h}:${mi}:${s}${sign}${oh}:${om} ${wd}]`;
 }
 
 function injectable(msgs: Array<Record<string, unknown>>): boolean {
