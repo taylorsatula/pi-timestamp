@@ -12,13 +12,20 @@ They're injected poorly if they're that annoying.
 [11:34pm - 9/1/26]
 ```
 
-Injection happens only at **turn boundaries**, never mid-tool-loop:
+Injection happens only at **turn boundaries**, never mid-tool-loop, and handles both wire
+formats the hook can deliver (the payload is the provider-serialized request body, which
+differs per API):
 
-- Last message is a **user message** → append the timestamp to its content.
-- Last message is an **assistant message with text content** (a vocalization between tool
-  steps) → append to its content.
-- Last message is an assistant message carrying `tool_calls`, or a tool result (mid-turn
-  churn) → skip.
+- **Chat Completions / Anthropic** (conversation under `messages`): last message is a
+  **user message** → append the timestamp to its content. Last message is an
+  **assistant message with text content** (a vocalization between tool steps) → append
+  to its content. Last message is an assistant message carrying `tool_calls`, a tool
+  result, or an Anthropic user message containing a `tool_result` block (that API's
+  tool-result encoding) → skip.
+- **OpenAI Responses API** (conversation under `input`, typed items): last item is a
+  user item → append to its content blocks. Last item is an assistant `message` item
+  (vocalization) → append to its `output_text` blocks. Last item is a `function_call` or
+  `function_call_output` item → skip.
 
 ## Why plain-text tail append (design notes)
 
@@ -35,6 +42,9 @@ Injection happens only at **turn boundaries**, never mid-tool-loop:
 - **Content-shape aware.** String content concatenates directly; block-array content
   (Anthropic-shaped) appends into or after the last text block; unknown shapes are left
   untouched rather than guessed at.
+- **Wire-format aware.** Chat Completions/Anthropic payloads (`messages`) and OpenAI
+  Responses payloads (`input`, typed items) are both handled; any other payload shape
+  passes through untouched.
 
 ## Installation
 
@@ -61,6 +71,9 @@ Or add to `~/.pi/agent/settings.json` under `packages`:
 - Version 0.2.0 changed the mechanism (plain-text tail append replacing the synthetic
   tool-call pair). Sessions started before the upgrade may still show one old-style pair
   until restart.
+- Version 0.2.1 fixed a crash on OpenAI Responses-API models (`before_provider_request`
+  payloads carry the conversation under `input`, not `messages`) and added
+  Anthropic `tool_result` skipping.
 
 ## Development
 

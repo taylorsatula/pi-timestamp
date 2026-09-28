@@ -1,6 +1,6 @@
 {
   "name": "@taylorsatula/pi-timestamp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Timestamp injection extension for Pi — appends the current wall-clock time to the tail of user messages and vocalizations just-in-time (cache-safe, no synthetic tool calls), so the model always knows what time it is.",
   "keywords": [
     "pi-package"
